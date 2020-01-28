@@ -75,8 +75,8 @@ func TestServer_HarnessCreateSuperblocks(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ms := newMgmtSvcClient(
-			context.Background(), log, mgmtSvcClientCfg{
+		ms := newGrpcClient(
+			context.Background(), log, grpcClientCfg{
 				ControlAddr:  ctrlAddr,
 				AccessPoints: defaultApList,
 			},
@@ -207,8 +207,8 @@ func TestServer_HarnessGetMSLeaderInstance(t *testing.T) {
 					WithScmMountPoint(strconv.Itoa(i))
 				r := ioserver.NewRunner(log, cfg)
 
-				m := newMgmtSvcClient(
-					context.Background(), log, mgmtSvcClientCfg{
+				m := newGrpcClient(
+					context.Background(), log, grpcClientCfg{
 						ControlAddr:  &net.TCPAddr{},
 						AccessPoints: tc.apList,
 					},
@@ -302,11 +302,11 @@ func TestServer_HarnessIOServerStart(t *testing.T) {
 					t.Fatal(err)
 				}
 				scmProvider := scm.NewMockProvider(log, nil, &scm.MockSysConfig{IsMountedBool: true})
-				msClientCfg := mgmtSvcClientCfg{
+				msClientCfg := grpcClientCfg{
 					ControlAddr:  &net.TCPAddr{},
 					AccessPoints: []string{"localhost"},
 				}
-				msClient := newMgmtSvcClient(context.TODO(), log, msClientCfg)
+				msClient := newGrpcClient(context.TODO(), log, msClientCfg)
 				srv := NewIOServerInstance(log, bdevProvider, scmProvider, msClient, runner)
 				if err := harness.AddInstance(srv); err != nil {
 					t.Fatal(err)

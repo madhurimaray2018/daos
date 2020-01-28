@@ -452,8 +452,8 @@ func getMgmtInfo(srv *IOServerInstance) (*mgmtInfo, error) {
 	var err error
 	mi := &mgmtInfo{}
 	mi.isReplica, mi.shouldBootstrap, err = checkMgmtSvcReplica(
-		srv.msClient.cfg.ControlAddr,
-		srv.msClient.cfg.AccessPoints,
+		srv.msClient.GetConfig().ControlAddr,
+		srv.msClient.GetConfig().AccessPoints,
 	)
 	if err != nil {
 		return nil, err

@@ -35,7 +35,7 @@ import (
 	"github.com/daos-stack/daos/src/control/logging"
 )
 
-func mockMember(t *testing.T, idx uint32, state MemberState) *Member {
+func MockMember(t *testing.T, idx uint32, state MemberState) *Member {
 	addr, err := net.ResolveTCPAddr("tcp",
 		fmt.Sprintf("127.0.0.%d:10001", idx))
 	if err != nil {
@@ -81,8 +81,8 @@ func TestMember_AddRemove(t *testing.T) {
 	}{
 		"add remove success": {
 			Members{
-				mockMember(t, 1, MemberStateUnknown),
-				mockMember(t, 2, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 2, MemberStateUnknown),
 			},
 			[]Rank{1, 2},
 			Members{},
@@ -90,8 +90,8 @@ func TestMember_AddRemove(t *testing.T) {
 		},
 		"add failure duplicate": {
 			Members{
-				mockMember(t, 1, MemberStateUnknown),
-				mockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
 			},
 			nil,
 			nil,
@@ -99,13 +99,13 @@ func TestMember_AddRemove(t *testing.T) {
 		},
 		"remove non-existent": {
 			Members{
-				mockMember(t, 1, MemberStateUnknown),
-				mockMember(t, 2, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 2, MemberStateUnknown),
 			},
 			[]Rank{3},
 			Members{
-				mockMember(t, 1, MemberStateUnknown),
-				mockMember(t, 2, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 2, MemberStateUnknown),
 			},
 			[]error{nil, nil},
 		},
@@ -148,31 +148,31 @@ func TestMember_AddOrUpdate(t *testing.T) {
 	}{
 		"add then update": {
 			Members{
-				mockMember(t, 1, MemberStateStarted),
-				mockMember(t, 1, MemberStateStopped),
+				MockMember(t, 1, MemberStateStarted),
+				MockMember(t, 1, MemberStateStopped),
 			},
-			Members{mockMember(t, 1, MemberStateStopped)},
+			Members{MockMember(t, 1, MemberStateStopped)},
 			[]bool{true, false},
 			[]*MemberState{nil, &started},
 		},
 		"add multiple": {
 			Members{
-				mockMember(t, 1, MemberStateUnknown),
-				mockMember(t, 2, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 2, MemberStateUnknown),
 			},
 			Members{
-				mockMember(t, 1, MemberStateUnknown),
-				mockMember(t, 2, MemberStateUnknown),
+				MockMember(t, 1, MemberStateUnknown),
+				MockMember(t, 2, MemberStateUnknown),
 			},
 			[]bool{true, true},
 			[]*MemberState{nil, nil},
 		},
 		"update same state": {
 			Members{
-				mockMember(t, 1, MemberStateStarted),
-				mockMember(t, 1, MemberStateStarted),
+				MockMember(t, 1, MemberStateStarted),
+				MockMember(t, 1, MemberStateStarted),
 			},
-			Members{mockMember(t, 1, MemberStateStarted)},
+			Members{MockMember(t, 1, MemberStateStarted)},
 			[]bool{true, false},
 			[]*MemberState{nil, &started},
 		},
@@ -217,7 +217,7 @@ func TestMember_AddOrUpdate(t *testing.T) {
 }
 
 func TestMember_Convert(t *testing.T) {
-	membersIn := Members{mockMember(t, 1, MemberStateStarted)}
+	membersIn := Members{MockMember(t, 1, MemberStateStarted)}
 	membersOut := Members{}
 	if err := convert.Types(membersIn, &membersOut); err != nil {
 		t.Fatal(err)
@@ -232,9 +232,9 @@ func TestMember_RanksHostsMembers(t *testing.T) {
 	ms := NewMembership(log)
 
 	members := Members{
-		mockMember(t, 1, MemberStateStarted),
-		mockMember(t, 2, MemberStateStopped),
-		mockMember(t, 3, MemberStateEvicted),
+		MockMember(t, 1, MemberStateStarted),
+		MockMember(t, 2, MemberStateStopped),
+		MockMember(t, 3, MemberStateEvicted),
 	}
 	for _, m := range members {
 		if _, err := ms.Add(m); err != nil {
@@ -274,10 +274,10 @@ func TestMember_UpdateMemberStates(t *testing.T) {
 	ms := NewMembership(log)
 
 	members := Members{
-		mockMember(t, 1, MemberStateStarted),
-		mockMember(t, 2, MemberStateStopped),
-		mockMember(t, 3, MemberStateEvicted),
-		mockMember(t, 4, MemberStateStopped),
+		MockMember(t, 1, MemberStateStarted),
+		MockMember(t, 2, MemberStateStopped),
+		MockMember(t, 3, MemberStateEvicted),
+		MockMember(t, 4, MemberStateStopped),
 	}
 	results := MemberResults{
 		NewMemberResult(1, "query", nil, MemberStateStopped),
