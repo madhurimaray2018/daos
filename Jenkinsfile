@@ -1495,6 +1495,8 @@ pipeline {
                                            if [ -z "$test_tag" ]; then
                                                test_tag=pr,hw,large
                                            fi
+                                           zypper lr
+                                           zypper info libatomic1
                                            tnodes=$(echo $NODELIST | cut -d ',' -f 1-9)
                                            # set DAOS_TARGET_OVERSUBSCRIBE env here
                                            export DAOS_TARGET_OVERSUBSCRIBE=1
