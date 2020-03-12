@@ -51,10 +51,11 @@ def component_repos = ""
 def daos_repo = "daos@${env.BRANCH_NAME}:${env.BUILD_NUMBER}"
 def el7_daos_repos = el7_component_repos + ' ' + component_repos + ' ' + daos_repo
 def leap15_daos_repos = leap15_component_repos + ' ' + component_repos + ' ' + daos_repo
-def el7_functional_rpms = "openmpi3 hwloc ndctl spdk-tools " +
-                          "ior-hpc-cart-4-daos-0 " +
-                          "romio-tests-cart-4-daos-0 hdf5-tests-cart-4-daos-0 " +
-                          "mpi4py-tests-cart-4-daos-0 testmpio-cart-4-daos-0"
+def functional_rpms = "openmpi3 hwloc ndctl spdk-tools " +
+                      "ior-hpc-cart-4-daos-0 " +
+                      "romio-tests-cart-4-daos-0 hdf5-tests-cart-4-daos-0 " +
+                      "mpi4py-tests-cart-4-daos-0 testmpio-cart-4-daos-0"
+// need to exclude openmpi until we remove it from the repo
 def el7_functional_rpms  = "--exclude openmpi " + functional_rpms
 def leap15_functional_rpms  = functional_rpms
 
