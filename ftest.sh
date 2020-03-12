@@ -149,7 +149,7 @@ if [ \\\"\\\$(ulimit -c)\\\" != \\\"unlimited\\\" ]; then
 fi
 echo \\\"/var/tmp/core.%e.%t.%p\\\" > /proc/sys/kernel/core_pattern\"
 rm -f /var/tmp/core.*
-if [ \"\${HOSTNAME%%%%.*}\" != \"${nodes[0]}\" ]; then
+if [ \"\${HOSTNAME%%.*}\" != \"${nodes[0]}\" ]; then
     if grep /mnt/daos\\  /proc/mounts; then
         sudo umount /mnt/daos
     else
@@ -192,7 +192,7 @@ else
     mkdir -p $DAOS_BASE
     ed <<EOF /etc/fstab
 \\\\\\\$a
-$NFS_SERVER:$PWD $DAOS_BASE nfs defaults 0 0 # DAOS_BASE # added by ftest.sh
+$NFS_SERVER:$PWD $DAOS_BASE nfs defaults,vers=3 0 0 # DAOS_BASE # added by ftest.sh
 .
 wq
 EOF
