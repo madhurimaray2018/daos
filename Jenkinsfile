@@ -1097,78 +1097,78 @@ pipeline {
                       }
                     }
                 }
-                stage('Functional') {
-                    when {
-                        beforeAgent true
-                        expression {
-                            ! commitPragma(pragma: 'Skip-func-test').contains('true')
-                        }
-                    }
-                    agent {
-                        label 'ci_vm9'
-                    }
-                    steps {
-                        unstash 'CentOS-rpm-version'
-                        script {
-                            daos_packages_version = readFile('centos7-rpm-version').trim()
-                        }
-                        provisionNodes NODELIST: env.NODELIST,
-                                       node_count: 9,
-                                       profile: 'daos_ci',
-                                       distro: 'el7',
-                                       snapshot: true,
-                                       inst_repos: el7_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_version +
-                                                  ' daos-client-' + daos_packages_version +
-                                                  ' cart-' + env.CART_COMMIT + ' ' +
-                                                  el7_functional_rpms
-                        runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
-                                script: String.functional_test_script('', 'pr,-hw'),
-                                junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
-                                failure_artifacts: 'Functional'
-                    }
-                    post {
-                        always {
-                            sh '''rm -rf install/lib/daos/TESTING/ftest/avocado/*/*/html/
-                                  # Remove the latest avocado symlink directory to avoid inclusion in the
-                                  # jenkins build artifacts
-                                  unlink install/lib/daos/TESTING/ftest/avocado/job-results/latest
-                                  rm -rf "Functional/"
-                                  mkdir "Functional/"
-                                  # compress those potentially huge DAOS logs
-                                  if daos_logs=$(ls install/lib/daos/TESTING/ftest/avocado/job-results/*/daos_logs/*); then
-                                      lbzip2 $daos_logs
-                                  fi
-                                  arts="$arts$(ls *daos{,_agent}.log* 2>/dev/null)" && arts="$arts"$'\n'
-                                  arts="$arts$(ls -d install/lib/daos/TESTING/ftest/avocado/job-results/* 2>/dev/null)" && arts="$arts"$'\n'
-                                  if [ -n "$arts" ]; then
-                                      mv $(echo $arts | tr '\n' ' ') "Functional/"
-                                  fi'''
-                            archiveArtifacts artifacts: 'Functional/**'
-                            junit 'Functional/*/results.xml, install/lib/daos/TESTING/ftest/*_results.xml'
-                        }
-                        /* temporarily moved into runTest->stepResult due to JENKINS-39203
-                        success {
-                            githubNotify credentialsId: 'daos-jenkins-commit-status',
-                                         description: env.STAGE_NAME,
-                                         context: 'test/' + env.STAGE_NAME,
-                                         status: 'SUCCESS'
-                        }
-                        unstable {
-                            githubNotify credentialsId: 'daos-jenkins-commit-status',
-                                         description: env.STAGE_NAME,
-                                         context: 'test/' + env.STAGE_NAME,
-                                         status: 'FAILURE'
-                        }
-                        failure {
-                            githubNotify credentialsId: 'daos-jenkins-commit-status',
-                                         description: env.STAGE_NAME,
-                                         context: 'test/' + env.STAGE_NAME,
-                                         status: 'ERROR'
-                        }
-                        */
-                    }
-                }
+//                stage('Functional') {
+//                    when {
+//                        beforeAgent true
+//                        expression {
+//                            ! commitPragma(pragma: 'Skip-func-test').contains('true')
+//                        }
+//                    }
+//                    agent {
+//                        label 'ci_vm9'
+//                    }
+//                    steps {
+//                        unstash 'CentOS-rpm-version'
+//                        script {
+//                            daos_packages_version = readFile('centos7-rpm-version').trim()
+//                        }
+//                        provisionNodes NODELIST: env.NODELIST,
+//                                       node_count: 9,
+//                                       profile: 'daos_ci',
+//                                       distro: 'el7',
+//                                       snapshot: true,
+//                                       inst_repos: el7_daos_repos,
+//                                       inst_rpms: 'daos-' + daos_packages_version +
+//                                                  ' daos-client-' + daos_packages_version +
+//                                                  ' cart-' + env.CART_COMMIT + ' ' +
+//                                                  el7_functional_rpms
+//                        runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
+//                                script: String.functional_test_script('', 'pr,-hw', ''),
+//                                junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
+//                                failure_artifacts: 'Functional'
+//                    }
+//                    post {
+//                        always {
+//                            sh '''rm -rf install/lib/daos/TESTING/ftest/avocado/*/*/html/
+//                                  # Remove the latest avocado symlink directory to avoid inclusion in the
+//                                  # jenkins build artifacts
+//                                  unlink install/lib/daos/TESTING/ftest/avocado/job-results/latest
+//                                  rm -rf "Functional/"
+//                                  mkdir "Functional/"
+//                                  # compress those potentially huge DAOS logs
+//                                  if daos_logs=$(ls install/lib/daos/TESTING/ftest/avocado/job-results/*/daos_logs/*); then
+//                                      lbzip2 $daos_logs
+//                                  fi
+//                                  arts="$arts$(ls *daos{,_agent}.log* 2>/dev/null)" && arts="$arts"$'\n'
+//                                  arts="$arts$(ls -d install/lib/daos/TESTING/ftest/avocado/job-results/* 2>/dev/null)" && arts="$arts"$'\n'
+//                                  if [ -n "$arts" ]; then
+//                                      mv $(echo $arts | tr '\n' ' ') "Functional/"
+//                                  fi'''
+//                            archiveArtifacts artifacts: 'Functional/**'
+//                            junit 'Functional/*/results.xml, install/lib/daos/TESTING/ftest/*_results.xml'
+//                        }
+//                        /* temporarily moved into runTest->stepResult due to JENKINS-39203
+//                        success {
+//                            githubNotify credentialsId: 'daos-jenkins-commit-status',
+//                                         description: env.STAGE_NAME,
+//                                         context: 'test/' + env.STAGE_NAME,
+//                                         status: 'SUCCESS'
+//                        }
+//                        unstable {
+//                            githubNotify credentialsId: 'daos-jenkins-commit-status',
+//                                         description: env.STAGE_NAME,
+//                                         context: 'test/' + env.STAGE_NAME,
+//                                         status: 'FAILURE'
+//                        }
+//                        failure {
+//                            githubNotify credentialsId: 'daos-jenkins-commit-status',
+//                                         description: env.STAGE_NAME,
+//                                         context: 'test/' + env.STAGE_NAME,
+//                                         status: 'ERROR'
+//                        }
+//                        */
+//                    }
+//                }
                 stage('Functional on Leap 15') {
                     when {
                         beforeAgent true
@@ -1207,7 +1207,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   leap15_functional_rpms
                         runTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
-                                script: String.functional_test_script('', 'pr,-hw'),
+                                script: String.functional_test_script('', 'pr,-hw', ''),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
