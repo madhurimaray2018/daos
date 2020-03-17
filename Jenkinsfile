@@ -1299,12 +1299,6 @@ pipeline {
                                                   el7_functional_rpms
                         runFunctionalTest([ 'CentOS-install', 'CentOS-build-vars' ],
                                           '-hw-small', 'pr,hw,small', '"auto:Optane"')
-                        /*
-                        runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
-                                script: String.functional_test_script('-hw-small', 'pr,hw,small', '"auto:Optane"'),
-                                junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
-                                failure_artifacts: 'Functional'
-                        */
                     }
                     post {
                         always {
