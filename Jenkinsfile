@@ -39,6 +39,7 @@
 // To use a test branch (i.e. PR) until it lands to master
 // I.e. for testing library changes
 //@Library(value="pipeline-lib@your_branch") _
+@Library(value="pipeline-lib@bmurrell/leap15") _
 
 def daos_branch = "master"
 def arch = ""
@@ -55,10 +56,10 @@ def leap15_daos_repos = leap15_component_repos + ' ' + component_repos + ' ' + d
 def functional_rpms = "openmpi3 hwloc ndctl spdk-tools " +
                       "ior-hpc-cart-4-daos-0 " +
                       "romio-tests-cart-4-daos-0 hdf5-tests-cart-4-daos-0 " +
-                      "mpi4py-tests-cart-4-daos-0 testmpio-cart-4-daos-0"
+                      "testmpio-cart-4-daos-0"
 // need to exclude openmpi until we remove it from the repo
-def el7_functional_rpms  = "--exclude openmpi " + functional_rpms
-def leap15_functional_rpms  = functional_rpms + ' libatomic1'
+def el7_functional_rpms  = "--exclude openmpi " + functional_rpms + " mpi4py-tests-cart-4-daos-0"
+def leap15_functional_rpms  = functional_rpms
 
 def rpm_test_pre = '''if git show -s --format=%B | grep "^Skip-test: true"; then
                           exit 0
@@ -132,7 +133,7 @@ def functional_test_script = '''test_tag=$(git show -s --format=%B | sed -ne "/^
 def runFunctionalTest(List stashes, String one, String two, String three) {
 
     runTest stashes: stashes,
-            script: String.functional_test_script.format(one, two, three),
+            script: String.format(functional_test_script, one, two, three),
             junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
             failure_artifacts: 'Functional'
 
