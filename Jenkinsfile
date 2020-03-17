@@ -44,7 +44,8 @@ def daos_branch = "master"
 def arch = ""
 def sanitized_JOB_NAME = JOB_NAME.toLowerCase().replaceAll('/', '-').replaceAll('%2f', '-')
 
-def daos_packages_version = ""
+def daos_packages_verison_el7 = ""
+def daos_packages_verison_leap15 = ""
 def el7_component_repos = ""
 def leap15_component_repos = ""
 def component_repos = ""
@@ -1114,7 +1115,10 @@ pipeline {
 //                    steps {
 //                        unstash 'CentOS-rpm-version'
 //                        script {
-//                            daos_packages_version = readFile('centos7-rpm-version').trim()
+//                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
+//                            if (daos_packages_verison_el7.length() < 1) {
+//                                error("Could not determine the RPM version")
+//                            }
 //                        }
 //                        provisionNodes NODELIST: env.NODELIST,
 //                                       node_count: 9,
@@ -1122,8 +1126,8 @@ pipeline {
 //                                       distro: 'el7',
 //                                       snapshot: true,
 //                                       inst_repos: el7_daos_repos,
-//                                       inst_rpms: 'daos-' + daos_packages_version +
-//                                                  ' daos-client-' + daos_packages_version +
+//                                       inst_rpms: 'daos-' + daos_packages_verison_el7 +
+//                                                  ' daos-client-' + daos_packages_verison_el7 +
 //                                                  ' cart-' + env.CART_COMMIT + ' ' +
 //                                                  el7_functional_rpms
 //                        runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
@@ -1186,29 +1190,19 @@ pipeline {
                     steps {
                         unstash 'Leap-rpm-version'
                         script {
-                            daos_packages_version = readFile('leap15-rpm-version').trim()
-                            println("DAOS RPM version: " + daos_packages_version)
-                            println(daos_packages_version.length())
-                            if (daos_packages_version.length() < 1) {
-                                //error("Could not determine the RPM version")
-                                println("Could not determine the RPM version")
+                            daos_packages_verison_leap15 = readFile('leap15-rpm-version').trim()
+                            if (daos_packages_verison_leap15.length() < 1) {
+                                error("Could not determine the RPM version")
                             }
                         }
-                        sh label: "Verify DAOS RPM version",
-                           script: 'if [ -z "' + daos_packages_version + '''" ]; then
-                                        echo "couldn't determine DAOS packages version from daos_packages_version:"
-                                        ls -l leap15-rpm-version || true
-                                        cat leap15-rpm-version || true
-                                        exit 1
-                                    fi'''
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 9,
                                        profile: 'daos_ci',
                                        distro: 'opensuse15',
                                        snapshot: true,
                                        inst_repos: leap15_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_version +
-                                                  ' daos-client-' + daos_packages_version +
+                                       inst_rpms: 'daos-' + daos_packages_verison_leap15 +
+                                                  ' daos-client-' + daos_packages_verison_leap15 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   leap15_functional_rpms
                         runTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
@@ -1278,15 +1272,18 @@ pipeline {
                     steps {
                         unstash 'CentOS-rpm-version'
                         script {
-                            daos_packages_version = readFile('centos7-rpm-version').trim()
+                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
+                            if (daos_packages_verison_el7.length() < 1) {
+                                error("Could not determine the RPM version")
+                            }
                         }
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 3,
                                        profile: 'daos_ci',
                                        distro: 'el7',
                                        inst_repos: el7_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_version +
-                                                  ' daos-client-' + daos_packages_version +
+                                       inst_rpms: 'daos-' + daos_packages_verison_el7 +
+                                                  ' daos-client-' + daos_packages_verison_el7 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runFunctionalTest([ 'CentOS-install', 'CentOS-build-vars' ],
@@ -1355,15 +1352,18 @@ pipeline {
                     steps {
                         unstash 'CentOS-rpm-version'
                         script {
-                            daos_packages_version = readFile('centos7-rpm-version').trim()
+                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
+                            if (daos_packages_verison_el7.length() < 1) {
+                                error("Could not determine the RPM version")
+                            }
                         }
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 5,
                                        profile: 'daos_ci',
                                        distro: 'el7',
                                        inst_repos: el7_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_version +
-                                                  ' daos-client-' + daos_packages_version +
+                                       inst_rpms: 'daos-' + daos_packages_verison_el7 +
+                                                  ' daos-client-' + daos_packages_verison_el7 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
@@ -1434,15 +1434,18 @@ pipeline {
                     steps {
                         unstash 'CentOS-rpm-version'
                         script {
-                            daos_packages_version = readFile('centos7-rpm-version').trim()
+                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
+                            if (daos_packages_verison_el7.length() < 1) {
+                                error("Could not determine the RPM version")
+                            }
                         }
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 9,
                                        profile: 'daos_ci',
                                        distro: 'el7',
                                        inst_repos: el7_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_version +
-                                                  ' daos-client-' + daos_packages_version +
+                                       inst_rpms: 'daos-' + daos_packages_verison_el7 +
+                                                  ' daos-client-' + daos_packages_verison_el7 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
@@ -1512,7 +1515,10 @@ pipeline {
                     steps {
                         unstash 'Leap-rpm-version'
                         script {
-                            daos_packages_version = readFile('leap15-rpm-version').trim()
+                            daos_packages_verison_leap15 = readFile('leap15-rpm-version').trim()
+                            if (daos_packages_verison_leap15.length() < 1) {
+                                error("Could not determine the RPM version")
+                            }
                         }
                         // Just reboot the physical nodes
                         provisionNodes NODELIST: env.NODELIST,
@@ -1520,8 +1526,8 @@ pipeline {
                                        profile: 'daos_ci',
                                        distro: 'opensuse15',
                                        inst_repos: leap15_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_version +
-                                                  ' daos-client-' + daos_packages_version +
+                                       inst_rpms: 'daos-' + daos_packages_verison_leap15 +
+                                                  ' daos-client-' + daos_packages_verison_leap15 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   leap15_functional_rpms
                         runTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
@@ -1588,7 +1594,10 @@ pipeline {
                     steps {
                         unstash 'CentOS-rpm-version'
                         script {
-                            daos_packages_version = readFile('centos7-rpm-version').trim()
+                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
+                            if (daos_packages_verison_el7.length() < 1) {
+                                error("Could not determine the RPM version")
+                            }
                         }
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 1,
@@ -1599,10 +1608,10 @@ pipeline {
                                        inst_rpms: 'environment-modules'
                         catchError(stageResult: 'UNSTABLE', buildResult: 'SUCCESS') {
                             runTest script: "${rpm_test_pre}" +
-                                            "sudo yum -y install daos-client-${daos_packages_version}\n" +
+                                            "sudo yum -y install daos-client-${daos_packages_verison_el7}\n" +
                                             "sudo yum -y history rollback last-1\n" +
-                                            "sudo yum -y install daos-server-${daos_packages_version}\n" +
-                                            "sudo yum -y install daos-tests-${daos_packages_version}\n" +
+                                            "sudo yum -y install daos-server-${daos_packages_verison_el7}\n" +
+                                            "sudo yum -y install daos-tests-${daos_packages_verison_el7}\n" +
                                             "${rpm_test_daos_test}" + '"',
                                     junit_files: null,
                                     failure_artifacts: env.STAGE_NAME, ignore_failure: true
