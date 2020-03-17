@@ -129,11 +129,13 @@ def functional_test_script = '''test_tag=$(git show -s --format=%B | sed -ne "/^
                                 ./ftest.sh "$test_tag" $tnodes %s'''
 
 def runFunctionalTest(List stashes, String one, String two, String three) {
+
     runTest stashes: stashes,
-            script: String.functional_test_script(one, two, three),
+            script: String.functional_test_script.format(one, two, three),
             junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
             failure_artifacts: 'Functional'
- }
+
+}
 
 // bail out of branch builds that are not on a whitelist
 if (!env.CHANGE_ID &&
@@ -371,6 +373,8 @@ pipeline {
                                            cp -r . $OLDPWD/artifacts/leap15/)
                                           createrepo artifacts/leap15/
                                           rpm --qf %{version}-%{release}.%{arch} -qp artifacts/centos7/daos-server-*.x86_64.rpm > leap15-rpm-version
+                                          ls -l leap15-rpm-version || true
+                                          cat leap15-rpm-version || true
                                           cat $mockroot/result/{root,build}.log'''
                             stash name: 'Leap-rpm-version', includes: 'leap15-rpm-version'
                             publishToRepository product: 'daos',
@@ -1037,6 +1041,7 @@ pipeline {
                     // expression { skipTest != true }
                     expression { env.NO_CI_TESTING != 'true' }
                     expression { ! commitPragma(pragma: 'Skip-test').contains('true') }
+                    expression { ! commitPragma(pragma: 'Skip-coverity-scan').contains('true') }
                 }
             }
             parallel {
@@ -1294,6 +1299,12 @@ pipeline {
                                                   el7_functional_rpms
                         runFunctionalTest([ 'CentOS-install', 'CentOS-build-vars' ],
                                           '-hw-small', 'pr,hw,small', '"auto:Optane"')
+                        /*
+                        runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
+                                script: String.functional_test_script('-hw-small', 'pr,hw,small', '"auto:Optane"'),
+                                junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
+                                failure_artifacts: 'Functional'
+                        */
                     }
                     post {
                         always {
