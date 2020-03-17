@@ -100,6 +100,34 @@ def rpm_test_daos_test = '''me=\\\$(whoami)
                             trap 'set -x; kill -INT \\\$AGENT_PID \\\$COPROC_PID' EXIT
                             OFI_INTERFACE=eth0 daos_test -m'''
 
+def functional_test_script = '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag%s:/s/^.*: *//p")
+                                if [ -z "$test_tag" ]; then
+                                    test_tag=%s
+                                fi
+                                tnodes=$(echo $NODELIST | cut -d ',' -f 1-3)
+                                clush -B -S -o '-i ci_key' -l root -w ${tnodes} \
+                                  "set -x
+                                   for i in 0 1; do
+                                     if [ -e /sys/class/net/ib\\\$i ]; then
+                                       if ! ifconfig ib\\\$i | grep "inet "; then
+                                         {
+                                           echo \"Found interface ib\\\$i down after reboot on \\\$HOSTNAME\"
+                                           systemctl status
+                                           systemctl --failed
+                                           journalctl -n 500
+                                           ifconfig ib\\\$i
+                                           cat /sys/class/net/ib\\\$i/mode
+                                           ifup ib\\\$i
+                                         } | mail -s \"Interface found down after reboot\" $OPERATIONS_EMAIL
+                                       fi
+                                     fi
+                                   done"
+                                # set DAOS_TARGET_OVERSUBSCRIBE env here
+                                export DAOS_TARGET_OVERSUBSCRIBE=1
+                                rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
+                                mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
+                                ./ftest.sh "$test_tag" $tnodes %s'''
+ 
 // bail out of branch builds that are not on a whitelist
 if (!env.CHANGE_ID &&
     (env.BRANCH_NAME != "weekly-testing" &&
@@ -1095,16 +1123,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
-                                script: '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag:/s/^.*: *//p")
-                                           if [ -z "$test_tag" ]; then
-                                               test_tag=pr,-hw
-                                           fi
-                                           tnodes=$(echo $NODELIST | cut -d ',' -f 1-9)
-                                           # set DAOS_TARGET_OVERSUBSCRIBE env here
-                                           export DAOS_TARGET_OVERSUBSCRIBE=0
-                                           rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
-                                           mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
-                                           ./ftest.sh "$test_tag" $tnodes''',
+                                script: String.functional_test_script('', 'pr,-hw'),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
@@ -1188,16 +1207,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   leap15_functional_rpms
                         runTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
-                                script: '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag:/s/^.*: *//p")
-                                           if [ -z "$test_tag" ]; then
-                                               test_tag=pr,-hw
-                                           fi
-                                           tnodes=$(echo $NODELIST | cut -d ',' -f 1-9)
-                                           # set DAOS_TARGET_OVERSUBSCRIBE env here
-                                           export DAOS_TARGET_OVERSUBSCRIBE=0
-                                           rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
-                                           mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
-                                           ./ftest.sh "$test_tag" $tnodes''',
+                                script: String.functional_test_script('', 'pr,-hw'),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
@@ -1275,33 +1285,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
-                                script: '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag-hw-small:/s/^.*: *//p")
-                                           if [ -z "$test_tag" ]; then
-                                               test_tag=pr,hw,small
-                                           fi
-                                           tnodes=$(echo $NODELIST | cut -d ',' -f 1-3)
-                                           clush -B -S -o '-i ci_key' -l root -w ${tnodes} \
-                                             "set -x
-                                              for i in 0 1; do
-                                                if [ -e /sys/class/net/ib\\\$i ]; then
-                                                  if ! ifconfig ib\\\$i | grep "inet "; then
-                                                    {
-                                                      echo \"Found interface ib\\\$i down after reboot on \\\$HOSTNAME\"
-                                                      systemctl status
-                                                      systemctl --failed
-                                                      journalctl -n 500
-                                                      ifconfig ib\\\$i
-                                                      cat /sys/class/net/ib\\\$i/mode
-                                                      ifup ib\\\$i
-                                                    } | mail -s \"Interface found down after reboot\" $OPERATIONS_EMAIL
-                                                  fi
-                                                fi
-                                              done"
-                                           # set DAOS_TARGET_OVERSUBSCRIBE env here
-                                           export DAOS_TARGET_OVERSUBSCRIBE=1
-                                           rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
-                                           mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
-                                           ./ftest.sh "$test_tag" $tnodes "auto:Optane"''',
+                                script: String.functional_test_script('-hw-small', 'pr,hw,small', '"auto:Optane"'),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
@@ -1380,33 +1364,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
-                                script: '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag-hw-medium:/s/^.*: *//p")
-                                           if [ -z "$test_tag" ]; then
-                                               test_tag=pr,hw,medium,ib2
-                                           fi
-                                           tnodes=$(echo $NODELIST | cut -d ',' -f 1-5)
-                                           clush -B -S -o '-i ci_key' -l root -w ${tnodes} \
-                                             "set -x
-                                              for i in 0 1; do
-                                                if [ -e /sys/class/net/ib\\\$i ]; then
-                                                  if ! ifconfig ib\\\$i | grep "inet "; then
-                                                    {
-                                                      echo \"Found interface ib\\\$i down after reboot on \\\$HOSTNAME\"
-                                                      systemctl status
-                                                      systemctl --failed
-                                                      journalctl -n 500
-                                                      ifconfig ib\\\$i
-                                                      cat /sys/class/net/ib\\\$i/mode
-                                                      ifup ib\\\$i
-                                                    } | mail -s \"Interface found down after reboot\" $OPERATIONS_EMAIL
-                                                  fi
-                                                fi
-                                              done"
-                                           # set DAOS_TARGET_OVERSUBSCRIBE env here
-                                           export DAOS_TARGET_OVERSUBSCRIBE=1
-                                           rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
-                                           mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
-                                           ./ftest.sh "$test_tag" $tnodes "auto:Optane"''',
+                                script: String.functional_test_script('-hw-medium', 'pr,hw,medium,ib2', '"auto:Optane"'),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
@@ -1485,33 +1443,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
                         runTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
-                                script: '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag-hw-large:/s/^.*: *//p")
-                                           if [ -z "$test_tag" ]; then
-                                               test_tag=pr,hw,large
-                                           fi
-                                           tnodes=$(echo $NODELIST | cut -d ',' -f 1-9)
-                                           clush -B -S -o '-i ci_key' -l root -w ${tnodes} \
-                                             "set -x
-                                              for i in 0 1; do
-                                                if [ -e /sys/class/net/ib\\\$i ]; then
-                                                  if ! ifconfig ib\\\$i | grep "inet "; then
-                                                    {
-                                                      echo \"Found interface ib\\\$i down after reboot on \\\$HOSTNAME\"
-                                                      systemctl status
-                                                      systemctl --failed
-                                                      journalctl -n 500
-                                                      ifconfig ib\\\$i
-                                                      cat /sys/class/net/ib\\\$i/mode
-                                                      ifup ib\\\$i
-                                                    } | mail -s \"Interface found down after reboot\" $OPERATIONS_EMAIL
-                                                  fi
-                                                fi
-                                              done"
-                                           # set DAOS_TARGET_OVERSUBSCRIBE env here
-                                           export DAOS_TARGET_OVERSUBSCRIBE=1
-                                           rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
-                                           mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
-                                           ./ftest.sh "$test_tag" $tnodes "auto:Optane"''',
+                                script: String.functional_test_script('-hw-large', 'pr,hw,large', '"auto:Optane"'),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
@@ -1590,18 +1522,7 @@ pipeline {
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   leap15_functional_rpms
                         runTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
-                                script: '''test_tag=$(git show -s --format=%B | sed -ne "/^Test-tag-hw-large:/s/^.*: *//p")
-                                           if [ -z "$test_tag" ]; then
-                                               test_tag=pr,hw,large
-                                           fi
-                                           zypper lr || true
-                                           zypper info libatomic1 || true
-                                           tnodes=$(echo $NODELIST | cut -d ',' -f 1-9)
-                                           # set DAOS_TARGET_OVERSUBSCRIBE env here
-                                           export DAOS_TARGET_OVERSUBSCRIBE=1
-                                           rm -rf install/lib/daos/TESTING/ftest/avocado ./*_results.xml
-                                           mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
-                                           ./ftest.sh "$test_tag" $tnodes "auto:Optane"''',
+                                script: String.functional_test_script('-hw-large', 'pr,hw,large', '"auto:Optane"'),
                                 junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
                                 failure_artifacts: 'Functional'
                     }
