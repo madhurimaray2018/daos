@@ -130,14 +130,16 @@ def functional_test_script = '''test_tag=$(git show -s --format=%B | sed -ne "/^
                                 mkdir -p install/lib/daos/TESTING/ftest/avocado/job-results
                                 ./ftest.sh "$test_tag" $tnodes %s'''
 
-def runFunctionalTest(List stashes, String one, String two, String three) {
 
-    runTest stashes: stashes,
-            script: String.format(functional_test_script, one, two, three),
-            junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
-            failure_artifacts: 'Functional'
-
-}
+//def runFunctionalTest(List stashes, String one, String two, String three) {
+//
+//    println("Going to runTest with: " + functional_test_script)
+//    runTest stashes: stashes,
+//            script: String.format(functional_test_script, one, two, three),
+//            junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
+//            failure_artifacts: 'Functional'
+//
+//}
 
 // bail out of branch builds that are not on a whitelist
 if (!env.CHANGE_ID &&
@@ -1206,10 +1208,10 @@ pipeline {
                                                   ' daos-client-' + daos_packages_verison_leap15 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   leap15_functional_rpms
-                        runTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
-                                script: String.functional_test_script('', 'pr,-hw', ''),
-                                junit_files: "install/lib/daos/TESTING/ftest/avocado/*/*/*.xml install/lib/daos/TESTING/ftest/*_results.xml",
-                                failure_artifacts: 'Functional'
+                        runFunctionalTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
+                                          pragma_suffix: '',
+                                          test_tag: 'pr,-hw',
+                                          ftest_arg ''
                     }
                     post {
                         always {
@@ -1287,8 +1289,10 @@ pipeline {
                                                   ' daos-client-' + daos_packages_verison_el7 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
                                                   el7_functional_rpms
-                        runFunctionalTest([ 'CentOS-install', 'CentOS-build-vars' ],
-                                          '-hw-small', 'pr,hw,small', '"auto:Optane"')
+                        runFunctionalTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
+                                          pragma_suffix: '-hw-small',
+                                          test_tag: 'pr,hw,small',
+                                          ftest_arg '"auto:Optane"'
                     }
                     post {
                         always {
