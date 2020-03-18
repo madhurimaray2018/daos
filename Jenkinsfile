@@ -1211,7 +1211,7 @@ pipeline {
                         runFunctionalTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
                                           pragma_suffix: '',
                                           test_tag: 'pr,-hw',
-                                          ftest_arg ''
+                                          ftest_arg: ''
                     }
                     post {
                         always {
@@ -1292,7 +1292,7 @@ pipeline {
                         runFunctionalTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
                                           pragma_suffix: '-hw-small',
                                           test_tag: 'pr,hw,small',
-                                          ftest_arg '"auto:Optane"'
+                                          ftest_arg: '"auto:Optane"'
                     }
                     post {
                         always {
