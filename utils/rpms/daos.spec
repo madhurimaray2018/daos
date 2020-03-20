@@ -53,6 +53,7 @@ BuildRequires: CUnit-devel
 BuildRequires: golang-bin >= 1.12
 BuildRequires: libipmctl-devel
 BuildRequires: python-devel python36-devel
+BuildRequires: Lmod
 %else
 %if (0%{?suse_version} >= 1315)
 # see src/client/dfs/SConscript for why we need /etc/os-release
@@ -64,7 +65,7 @@ BuildRequires: cunit-devel
 BuildRequires: go >= 1.12
 BuildRequires: ipmctl-devel
 BuildRequires: python-devel python3-devel
-BuildRequires: Modules
+BuildRequires: lua-lmod
 %if 0%{?is_opensuse}
 # have choice for boost-devel needed by cart-devel: boost-devel boost_1_58_0-devel
 BuildRequires: boost-devel
@@ -335,6 +336,9 @@ getent group daos_admins >/dev/null || groupadd -r daos_admins
 %{_libdir}/*.a
 
 %changelog
+* Fri Mar 20 2020 Brian J. Murrell <brian.murrell@intel.com> - 1.1.0-4
+- Use Lmod for MPI module loading
+
 * Wed Mar 18 2020 Brian J. Murrell <brian.murrell@intel.com> - 1.1.0-4
 - Change fuse requirement to fuse3
 
