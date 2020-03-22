@@ -61,7 +61,7 @@ class MpioUtils():
                            echo "Loaded $mod"
                            break
                        fi
-                   dome
+                   done
                    command -v mpichversion''']).rstrip()[:-len('bin/mpichversion')]
 
             return True
