@@ -56,7 +56,7 @@ class MpioUtils():
                 '''set -x
                    export MODULEPATH=/usr/share/modules
                    for mod in mpi/mpich-x86_64 gnu-mpich; do
-                       if module avail $mod; then
+                       if module is-avail $mod; then
                            module load $mod
                            echo "Loaded $mod"
                            break
