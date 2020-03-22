@@ -53,15 +53,15 @@ class MpioUtils():
             # TODO: should use list_mpis('mpich') here
             self.mpichinstall = subprocess.check_output(
                 ["ssh", hostlist[0],
-                '''set -x
-                   export MODULEPATH=/usr/share/modules
-                   for mod in mpi/mpich-x86_64 gnu-mpich; do
-                       if module avail $mod; then
-                           module load $mod
-                           echo "Loaded $mod"
-                           break
-                       fi
-                   dpme
+                '''set -x;
+                   export MODULEPATH=/usr/share/modules;
+                   for mod in mpi/mpich-x86_64 gnu-mpich; do;
+                       if module avail $mod; then;
+                           module load $mod;
+                           echo "Loaded $mod";
+                           break;
+                       fi;
+                   dpme;
                    command -v mpichversion''']).rstrip()[:-len('bin/mpichversion')]
 
             return True
