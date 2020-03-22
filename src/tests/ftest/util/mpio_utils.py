@@ -53,7 +53,7 @@ class MpioUtils():
             # TODO: should use list_mpis('mpich') here
             self.mpichinstall = subprocess.check_output(
                 ["ssh", hostlist[0],
-                 "module load mpi/mpich-x86_64 || module load mpich; "
+                "module load mpi/mpich-x86_64 || module load gnu-mpich; "
                  "command -v mpichversion"]).rstrip()[:-len('bin/mpichversion')]
 
             return True
