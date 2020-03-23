@@ -7,9 +7,10 @@ PATCHES  = scons_local-$(VERSION).tar.$(SRC_EXT)
 MOCK_OPTIONS := --disablerepo=sclo*
 
 # override allows the caller to set a value and the we append to it
-override PR_REPOS         += lua-lmod@PR-1
+#override PR_REPOS         +=
 override SLES_12_PR_REPOS += scons
 override LEAP_42_PR_REPOS += scons
+override LEAP_15_PR_REPOS += lua-lmod@PR-1
 ifneq ($(REPOSITORY_URL),)
 ifneq ($(DAOS_STACK_$(DISTRO_BASE)_GROUP_REPO),)
 EL_7_REPOS     = https://copr-be.cloud.fedoraproject.org/results/jhli/ipmctl/epel-7-x86_64/   \
