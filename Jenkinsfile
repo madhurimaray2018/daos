@@ -594,6 +594,7 @@ pipeline {
                     when {
                         beforeAgent true
                         allOf {
+                            expression { false }  // disable until we get lmod figured out
                             not { branch 'weekly-testing' }
                             expression { env.CHANGE_TARGET != 'weekly-testing' }
                             expression { env.QUICKBUILD != 'true' }
