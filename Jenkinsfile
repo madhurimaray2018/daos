@@ -393,6 +393,7 @@ pipeline {
                         }
                     }
                     steps {
+                        sh 'env | sort'
                         sconsBuild clean: "_build.external${arch}",
                                    failure_artifacts: 'config.log-centos7-gcc'
                         stash name: 'CentOS-install', includes: 'install/**'
