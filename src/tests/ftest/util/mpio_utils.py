@@ -54,7 +54,7 @@ class MpioUtils():
             self.mpichinstall = subprocess.check_output(
                 ["ssh", hostlist[0],
                 '''set -x
-                   export MODULEPATH=/usr/share/modules
+                   export MODULEPATH=/usr/share/modules:/etc/modulefiles
                    for mod in mpi/mpich-x86_64 gnu-mpich; do
                        if module is-avail $mod; then
                            module load $mod

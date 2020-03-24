@@ -1240,23 +1240,23 @@ pipeline {
                         label 'ci_nvme3'
                     }
                     steps {
-                        unstash 'CentOS-rpm-version'
+                        unstash 'Leap-rpm-version'
                         script {
-                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
-                            if (daos_packages_verison_el7.length() < 1) {
+                            daos_packages_verison_leap15 = readFile('leap15-rpm-version').trim()
+                            if (daos_packages_verison_leap15.length() < 1) {
                                 error("Could not determine the RPM version")
                             }
                         }
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 3,
                                        profile: 'daos_ci',
-                                       distro: 'el7',
-                                       inst_repos: el7_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_verison_el7 +
-                                                  ' daos-client-' + daos_packages_verison_el7 +
+                                       distro: 'opensuse15',
+                                       inst_repos: leap15_daos_repos,
+                                       inst_rpms: 'daos-' + daos_packages_verison_leap15 +
+                                                  ' daos-client-' + daos_packages_verison_leap15 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
-                                                  el7_functional_rpms
-                        runFunctionalTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
+                                                  leap15_functional_rpms
+                        runFunctionalTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
                                           pragma_suffix: '-hw-small',
                                           test_tag: 'pr,hw,small',
                                           node_count: 3,
@@ -1323,23 +1323,23 @@ pipeline {
                         label 'ci_nvme5'
                     }
                     steps {
-                        unstash 'CentOS-rpm-version'
+                        unstash 'Leap-rpm-version'
                         script {
-                            daos_packages_verison_el7 = readFile('centos7-rpm-version').trim()
-                            if (daos_packages_verison_el7.length() < 1) {
+                            daos_packages_verison_leap15 = readFile('leap15-rpm-version').trim()
+                            if (daos_packages_verison_leap15.length() < 1) {
                                 error("Could not determine the RPM version")
                             }
                         }
                         provisionNodes NODELIST: env.NODELIST,
                                        node_count: 5,
                                        profile: 'daos_ci',
-                                       distro: 'el7',
-                                       inst_repos: el7_daos_repos,
-                                       inst_rpms: 'daos-' + daos_packages_verison_el7 +
-                                                  ' daos-client-' + daos_packages_verison_el7 +
+                                       distro: 'opensuse15',
+                                       inst_repos: leap15_daos_repos,
+                                       inst_rpms: 'daos-' + daos_packages_verison_leap15 +
+                                                  ' daos-client-' + daos_packages_verison_leap15 +
                                                   ' cart-' + env.CART_COMMIT + ' ' +
-                                                  el7_functional_rpms
-                        runFunctionalTest stashes: [ 'CentOS-install', 'CentOS-build-vars' ],
+                                                  leap15_functional_rpms
+                        runFunctionalTest stashes: [ 'Leap-install', 'Leap-build-vars' ],
                                           pragma_suffix: '-hw-medium',
                                           test_tag: 'pr,hw,medium,ib2',
                                           node_count: 5,
