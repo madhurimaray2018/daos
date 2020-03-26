@@ -247,10 +247,10 @@ func TestMgmtSvc_PoolCreate(t *testing.T) {
 				ioCfg := ioserver.NewConfig().WithTargetCount(tc.targetCount)
 				r := ioserver.NewTestRunner(nil, ioCfg)
 
-				var gcCfg grpcClientCfg
+				var gcCfg systemClientCfg
 				gcCfg.AccessPoints = append(gcCfg.AccessPoints, "localhost")
 
-				srv := NewIOServerInstance(log, nil, nil, newGrpcClient(context.TODO(), log, gcCfg), r)
+				srv := NewIOServerInstance(log, nil, nil, newSystemClient(context.TODO(), log, gcCfg), r)
 				srv.setSuperblock(&Superblock{MS: true})
 
 				harness := NewIOServerHarness(log)

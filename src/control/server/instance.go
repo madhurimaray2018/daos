@@ -65,7 +65,7 @@ type IOServerInstance struct {
 	runner            IOServerRunner
 	bdevClassProvider *bdev.ClassProvider
 	scmProvider       *scm.Provider
-	msClient          GrpcClient
+	msClient          SystemClient
 	instanceReady     chan *srvpb.NotifyReadyReq
 	storageReady      chan struct{}
 	fsRoot            string
@@ -82,7 +82,7 @@ type IOServerInstance struct {
 // its dependencies.
 func NewIOServerInstance(log logging.Logger,
 	bcp *bdev.ClassProvider, sp *scm.Provider,
-	msc GrpcClient, r IOServerRunner) *IOServerInstance {
+	msc SystemClient, r IOServerRunner) *IOServerInstance {
 
 	return &IOServerInstance{
 		log:               log,

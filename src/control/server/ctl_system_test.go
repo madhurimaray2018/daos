@@ -94,10 +94,10 @@ func TestServer_CtlSvc_SystemStart(t *testing.T) {
 			svc.harness.setStarted()
 			svc.harness.setStartable()
 
-			clientCfg := grpcClientCfg{
+			clientCfg := systemClientCfg{
 				AccessPoints: []string{defaultAP},
 			}
-			clientRets := mockGrpcClientRetvals{
+			clientRets := mockSystemClientRetvals{
 				startResp: tc.clientResp,
 				startErr:  tc.clientErr,
 			}
@@ -106,7 +106,7 @@ func TestServer_CtlSvc_SystemStart(t *testing.T) {
 				*srv._superblock.Rank = system.Rank(i + 1)
 				if i == 0 {
 					srv._superblock.MS = true
-					srv.msClient = newMockGrpcClient(log, clientCfg, clientRets)
+					srv.msClient = newMockSystemClient(log, clientCfg, clientRets)
 				}
 			}
 

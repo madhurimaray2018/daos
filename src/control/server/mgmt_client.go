@@ -41,46 +41,99 @@ const (
 )
 
 type (
-	// GrpcClientCfgHelper provides config access.
-	GrpcClientCfgHelper interface {
-		GetConfig() *grpcClientCfg
-		SetConfig(grpcClientCfg)
+	// SystemClientCfgHelper provides config access.
+	SystemClientCfgHelper interface {
+		GetConfig() *systemClientCfg
+		SetConfig(systemClientCfg)
 		LeaderAddress() (string, error)
 	}
-	// grpcClientCfgHelper implements GrpcClientCfgHelper.
-	grpcClientCfgHelper struct {
-		cfg grpcClientCfg
+	// systemClientCfgHelper implements SystemClientCfgHelper.
+	systemClientCfgHelper struct {
+		cfg systemClientCfg
 	}
-	// GrpcClient provides a subset of MgmtSvcClient for operations between gRPC servers.
-	GrpcClient interface {
-		GrpcClientCfgHelper
+	// SystemClient provides a subset of MgmtSvcClient for operations between gRPC servers.
+	SystemClient interface {
+		SystemClientCfgHelper
 		Join(context.Context, *mgmtpb.JoinReq) (*mgmtpb.JoinResp, error)
 		PrepShutdown(context.Context, string, mgmtpb.RanksReq) (*mgmtpb.RanksResp, error)
 		Stop(context.Context, string, mgmtpb.RanksReq) (*mgmtpb.RanksResp, error)
 		Start(context.Context, string, mgmtpb.RanksReq) (*mgmtpb.RanksResp, error)
 		Query(context.Context, string, mgmtpb.RanksReq) (*mgmtpb.RanksResp, error)
 	}
-	// grpcClient implements GrpcClient.
-	grpcClient struct {
+	// systemClient implements SystemClient.
+	systemClient struct {
 		log logging.Logger
-		*grpcClientCfgHelper
+		*systemClientCfgHelper
 	}
-	grpcClientCfg struct {
+	systemClientCfg struct {
 		AccessPoints    []string
 		ControlAddr     *net.TCPAddr
 		TransportConfig *security.TransportConfig
 	}
 )
 
-func (gcch *grpcClientCfgHelper) GetConfig() *grpcClientCfg {
+type harnessCall func(context.Context, string, mgmtpb.RanksReq) (*mgmtpb.RanksResp, error)
+
+// prepareRequest will populate an MgmtSvcClient if missing and return RanksReq.
+func (sc *systemClient) prepareRequest(ranks []system.Rank, force bool) (*mgmtpb.RanksReq, error) {
+	// Populate MS instance to use as SystemClient
+	if sc.client == nil {
+		mi, err := £107/sc.localHarness.GetMSLeaderInstance()
+		if err != nil {
+			return nil, errors.Wrap(err, "prepare harness request")
+		}
+		hc.client = mi.msClient
+	}
+
+	if len(ranks) > maxIOServers {
+		return nil, errors.New("number of of ranks exceeds maximum")
+	}
+
+	req := &mgmtpb.RanksReq{Force: force}
+	return req, req.SetSystemRanks(ranks)
+}
+
+// call issues gRPC to remote harness using a supplied client function to the
+// given address.
+func (hc *harnessClient) call(ctx context.Context, addr string, rpcReq *mgmtpb.RanksReq, f harnessCall) (system.MemberResults, error) {
+	errChan := make(chan error)
+	var rpcResp *mgmtpb.RanksResp
+	go func() {
+		var innerErr error
+		rpcResp, innerErr = f(ctx, addr, *rpcReq)
+
+		select {
+		case <-ctx.Done():
+		case errChan <- innerErr:
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case err := <-errChan:
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	memberResults := make(system.MemberResults, 0, maxIOServers)
+	if err := convert.Types(rpcResp.GetResults(), &memberResults); err != nil {
+		return nil, errors.Wrapf(err, "decoding response from %s", addr)
+	}
+
+	return memberResults, nil
+}
+
+func (gcch *systemClientCfgHelper) GetConfig() *systemClientCfg {
 	return &gcch.cfg
 }
 
-func (gcch *grpcClientCfgHelper) SetConfig(cfg grpcClientCfg) {
+func (gcch *systemClientCfgHelper) SetConfig(cfg systemClientCfg) {
 	gcch.cfg = cfg
 }
 
-func (gcch *grpcClientCfgHelper) LeaderAddress() (string, error) {
+func (gcch *systemClientCfgHelper) LeaderAddress() (string, error) {
 	if len(gcch.cfg.AccessPoints) == 0 {
 		return "", errors.New("no access points defined")
 	}
@@ -90,22 +143,22 @@ func (gcch *grpcClientCfgHelper) LeaderAddress() (string, error) {
 	return gcch.cfg.AccessPoints[0], nil
 }
 
-func newGrpcClient(ctx context.Context, log logging.Logger, cfg grpcClientCfg) GrpcClient {
-	return &grpcClient{
-		log:                 log,
-		grpcClientCfgHelper: &grpcClientCfgHelper{cfg: cfg},
+func newSystemClient(ctx context.Context, log logging.Logger, cfg systemClientCfg) SystemClient {
+	return &systemClient{
+		log:                   log,
+		systemClientCfgHelper: &systemClientCfgHelper{cfg: cfg},
 	}
 }
 
 // delayRetry delays next retry.
-func (gc *grpcClient) delayRetry(ctx context.Context) {
+func (gc *systemClient) delayRetry(ctx context.Context) {
 	select {
 	case <-ctx.Done(): // break early if the parent context is canceled
 	case <-time.After(retryDelay): // otherwise, block until after the delay duration
 	}
 }
 
-func (gc *grpcClient) withConnection(ctx context.Context, ap string,
+func (gc *systemClient) withConnection(ctx context.Context, ap string,
 	fn func(context.Context, mgmtpb.MgmtSvcClient) error, extraDialOpts ...grpc.DialOption) error {
 
 	var opts []grpc.DialOption
@@ -125,20 +178,20 @@ func (gc *grpcClient) withConnection(ctx context.Context, ap string,
 	return fn(ctx, mgmtpb.NewMgmtSvcClient(conn))
 }
 
-func (gc *grpcClient) withConnectionRetry(ctx context.Context, ap string,
+func (gc *systemClient) withConnectionRetry(ctx context.Context, ap string,
 	fn func(context.Context, mgmtpb.MgmtSvcClient) error) error {
 
 	return gc.withConnection(ctx, ap, fn, grpc.WithBackoffMaxDelay(retryDelay),
 		grpc.WithDefaultCallOptions(grpc.FailFast(false)))
 }
 
-func (gc *grpcClient) withConnectionFailOnBadDial(ctx context.Context, ap string,
+func (gc *systemClient) withConnectionFailOnBadDial(ctx context.Context, ap string,
 	fn func(context.Context, mgmtpb.MgmtSvcClient) error) error {
 
 	return gc.withConnection(ctx, ap, fn, grpc.FailOnNonTempDialError(true))
 }
 
-func (gc *grpcClient) LeaderAddress() (string, error) {
+func (gc *systemClient) LeaderAddress() (string, error) {
 	if len(gc.cfg.AccessPoints) == 0 {
 		return "", errors.New("no access points defined")
 	}
@@ -148,7 +201,7 @@ func (gc *grpcClient) LeaderAddress() (string, error) {
 	return gc.cfg.AccessPoints[0], nil
 }
 
-func (gc *grpcClient) retryOnErr(err error, ctx context.Context, prefix string) bool {
+func (gc *systemClient) retryOnErr(err error, ctx context.Context, prefix string) bool {
 	if err != nil {
 		gc.log.Debugf("%s: %v", prefix, err)
 		gc.delayRetry(ctx)
@@ -158,7 +211,7 @@ func (gc *grpcClient) retryOnErr(err error, ctx context.Context, prefix string) 
 	return false
 }
 
-func (gc *grpcClient) retryOnStatus(status int32, ctx context.Context, prefix string) bool {
+func (gc *systemClient) retryOnStatus(status int32, ctx context.Context, prefix string) bool {
 	if status != 0 {
 		gc.log.Debugf("%s: %d", prefix, status)
 		gc.delayRetry(ctx)
@@ -168,7 +221,7 @@ func (gc *grpcClient) retryOnStatus(status int32, ctx context.Context, prefix st
 	return false
 }
 
-func (gc *grpcClient) Join(ctx context.Context, req *mgmtpb.JoinReq) (resp *mgmtpb.JoinResp, joinErr error) {
+func (gc *systemClient) Join(ctx context.Context, req *mgmtpb.JoinReq) (resp *mgmtpb.JoinResp, joinErr error) {
 	ap, err := gc.LeaderAddress()
 	if err != nil {
 		return nil, err
@@ -217,7 +270,7 @@ func (gc *grpcClient) Join(ctx context.Context, req *mgmtpb.JoinReq) (resp *mgmt
 //
 // Shipped function propose ranks for shutdown by sending requests over dRPC
 // to each rank.
-func (gc *grpcClient) PrepShutdown(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, psErr error) {
+func (gc *systemClient) PrepShutdown(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, psErr error) {
 	psErr = gc.withConnectionFailOnBadDial(ctx, destAddr,
 		func(ctx context.Context, pbClient mgmtpb.MgmtSvcClient) (err error) {
 
@@ -235,7 +288,7 @@ func (gc *grpcClient) PrepShutdown(ctx context.Context, destAddr string, req mgm
 //
 // Shipped function terminates ranks directly from the harness at the listening
 // address without requesting over dRPC.
-func (gc *grpcClient) Stop(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, stopErr error) {
+func (gc *systemClient) Stop(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, stopErr error) {
 	stopErr = gc.withConnectionFailOnBadDial(ctx, destAddr,
 		func(ctx context.Context, pbClient mgmtpb.MgmtSvcClient) error {
 
@@ -277,7 +330,7 @@ func (gc *grpcClient) Stop(ctx context.Context, destAddr string, req mgmtpb.Rank
 // rank managed by the harness listening at the destination address.
 //
 // StartRanks will return results for any instances started by the harness.
-func (gc *grpcClient) Start(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, startErr error) {
+func (gc *systemClient) Start(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, startErr error) {
 	startErr = gc.withConnectionFailOnBadDial(ctx, destAddr,
 		func(ctx context.Context, pbClient mgmtpb.MgmtSvcClient) (err error) {
 
@@ -301,7 +354,7 @@ func (gc *grpcClient) Start(ctx context.Context, destAddr string, req mgmtpb.Ran
 // activity.
 //
 // PingRanks should return ping results for any instances managed by the harness.
-func (gc *grpcClient) Query(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, statusErr error) {
+func (gc *systemClient) Query(ctx context.Context, destAddr string, req mgmtpb.RanksReq) (resp *mgmtpb.RanksResp, statusErr error) {
 	statusErr = gc.withConnectionFailOnBadDial(ctx, destAddr,
 		func(ctx context.Context, pbClient mgmtpb.MgmtSvcClient) (err error) {
 

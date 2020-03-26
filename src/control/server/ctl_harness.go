@@ -34,11 +34,17 @@ import (
 	"github.com/daos-stack/daos/src/control/system"
 )
 
-// HarnessClient provides methods for requesting actions on remote harnesses
+// harnessClient provides methods for requesting actions on remote harnesses
 // (attached to listening gRPC servers) identified by host addresses.
 //
 // Results will be provided for each rank (member) managed by harness.
 // Single gRPC sent over management network per harness (not per rank).
+type harnessClient struct {
+	log          logging.Logger
+	localHarness *IOServerHarness
+	client       SystemClient
+}
+
 type HarnessClient interface {
 	Query(context.Context, string, ...system.Rank) (system.MemberResults, error)
 	PrepShutdown(context.Context, string, ...system.Rank) (system.MemberResults, error)
@@ -47,66 +53,8 @@ type HarnessClient interface {
 }
 
 // harnessClient implements the HarnessClient interface.
-type harnessClient struct {
-	log          logging.Logger
-	localHarness *IOServerHarness
-	client       GrpcClient
-}
+// Query sends gRPC using the SystemClient to the control server at the
 
-type harnessCall func(context.Context, string, mgmtpb.RanksReq) (*mgmtpb.RanksResp, error)
-
-// prepareRequest will populate an MgmtSvcClient if missing and return RanksReq.
-func (hc *harnessClient) prepareRequest(ranks []system.Rank, force bool) (*mgmtpb.RanksReq, error) {
-	// Populate MS instance to use as GrpcClient
-	if hc.client == nil {
-		mi, err := hc.localHarness.GetMSLeaderInstance()
-		if err != nil {
-			return nil, errors.Wrap(err, "prepare harness request")
-		}
-		hc.client = mi.msClient
-	}
-
-	if len(ranks) > maxIOServers {
-		return nil, errors.New("number of of ranks exceeds maximum")
-	}
-
-	req := &mgmtpb.RanksReq{Force: force}
-	return req, req.SetSystemRanks(ranks)
-}
-
-// call issues gRPC to remote harness using a supplied client function to the
-// given address.
-func (hc *harnessClient) call(ctx context.Context, addr string, rpcReq *mgmtpb.RanksReq, f harnessCall) (system.MemberResults, error) {
-	errChan := make(chan error)
-	var rpcResp *mgmtpb.RanksResp
-	go func() {
-		var innerErr error
-		rpcResp, innerErr = f(ctx, addr, *rpcReq)
-
-		select {
-		case <-ctx.Done():
-		case errChan <- innerErr:
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case err := <-errChan:
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	memberResults := make(system.MemberResults, 0, maxIOServers)
-	if err := convert.Types(rpcResp.GetResults(), &memberResults); err != nil {
-		return nil, errors.Wrapf(err, "decoding response from %s", addr)
-	}
-
-	return memberResults, nil
-}
-
-// Query sends gRPC using the GrpcClient to the control server at the
 // specified address to guage the responsiveness of the specified ranks.
 //
 // Results are returned for the ranks specified in the input parameter
@@ -120,7 +68,7 @@ func (hc *harnessClient) Query(ctx context.Context, addr string, ranks ...system
 	return hc.call(ctx, addr, rpcReq, hc.client.Query)
 }
 
-// PrepShutdown sends PrepShutdown gRPC using the GrpcClient to the control
+// PrepShutdown sends PrepShutdown gRPC using the SystemClient to the control
 // server at the specified address to prepare the specified ranks for a
 // controlled shutdown.
 //
@@ -135,7 +83,7 @@ func (hc *harnessClient) PrepShutdown(ctx context.Context, addr string, ranks ..
 	return hc.call(ctx, addr, rpcReq, hc.client.PrepShutdown)
 }
 
-// Stop sends Stop gRPC using the GrpcClient to the control server at the
+// Stop sends Stop gRPC using the SystemClient to the control server at the
 // specified address to terminate the specified ranks.
 //
 // Results are returned for the ranks specified in the input parameter
@@ -151,7 +99,7 @@ func (hc *harnessClient) Stop(ctx context.Context, addr string, force bool, rank
 	return hc.call(ctx, addr, rpcReq, hc.client.Stop)
 }
 
-// Start sends Start gRPC using the GrpcClient to the control server at the
+// Start sends Start gRPC using the SystemClient to the control server at the
 // specified address to start the specified ranks.
 //
 // Results are returned for the ranks specified in the input parameter

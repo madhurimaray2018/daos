@@ -30,13 +30,13 @@ import (
 	"github.com/daos-stack/daos/src/control/logging"
 )
 
-type mockGrpcClient struct {
+type mockSystemClient struct {
 	log     logging.Logger
-	retvals mockGrpcClientRetvals
-	*grpcClientCfgHelper
+	retvals mockSystemClientRetvals
+	*systemClientCfgHelper
 }
 
-type mockGrpcClientRetvals struct {
+type mockSystemClientRetvals struct {
 	joinResp         *mgmtpb.JoinResp
 	joinErr          error
 	prepShutdownResp *mgmtpb.RanksResp
@@ -49,30 +49,30 @@ type mockGrpcClientRetvals struct {
 	queryErr         error
 }
 
-func (mgc *mockGrpcClient) Join(_ context.Context, _ *mgmtpb.JoinReq) (*mgmtpb.JoinResp, error) {
-	return mgc.retvals.joinResp, mgc.retvals.joinErr
+func (msc *mockSystemClient) Join(_ context.Context, _ *mgmtpb.JoinReq) (*mgmtpb.JoinResp, error) {
+	return msc.retvals.joinResp, msc.retvals.joinErr
 }
 
-func (mgc *mockGrpcClient) PrepShutdown(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
-	return mgc.retvals.prepShutdownResp, mgc.retvals.prepShutdownErr
+func (msc *mockSystemClient) PrepShutdown(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
+	return msc.retvals.prepShutdownResp, msc.retvals.prepShutdownErr
 }
 
-func (mgc *mockGrpcClient) Start(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
-	return mgc.retvals.startResp, mgc.retvals.startErr
+func (msc *mockSystemClient) Start(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
+	return msc.retvals.startResp, msc.retvals.startErr
 }
 
-func (mgc *mockGrpcClient) Stop(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
-	return mgc.retvals.stopResp, mgc.retvals.stopErr
+func (msc *mockSystemClient) Stop(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
+	return msc.retvals.stopResp, msc.retvals.stopErr
 }
 
-func (mgc *mockGrpcClient) Query(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
-	return mgc.retvals.queryResp, mgc.retvals.queryErr
+func (msc *mockSystemClient) Query(_ context.Context, _ string, _ mgmtpb.RanksReq) (*mgmtpb.RanksResp, error) {
+	return msc.retvals.queryResp, msc.retvals.queryErr
 }
 
-func newMockGrpcClient(log logging.Logger, cfg grpcClientCfg, rets mockGrpcClientRetvals) GrpcClient {
-	return &mockGrpcClient{
-		log:                 log,
-		grpcClientCfgHelper: &grpcClientCfgHelper{cfg},
-		retvals:             rets,
+func newMockSystemClient(log logging.Logger, cfg systemClientCfg, rets mockSystemClientRetvals) SystemClient {
+	return &mockSystemClient{
+		log:                   log,
+		systemClientCfgHelper: &systemClientCfgHelper{cfg},
+		retvals:               rets,
 	}
 }
