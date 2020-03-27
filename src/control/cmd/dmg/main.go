@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	flags "github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
@@ -35,6 +36,7 @@ import (
 	"github.com/daos-stack/daos/src/control/client"
 	"github.com/daos-stack/daos/src/control/common"
 	"github.com/daos-stack/daos/src/control/fault"
+	"github.com/daos-stack/daos/src/control/lib/control"
 	"github.com/daos-stack/daos/src/control/logging"
 )
 
@@ -54,7 +56,25 @@ type (
 	connectedCmd struct {
 		conns client.Connect
 	}
+
+	ctlClientUser interface {
+		setClient(control.Invoker)
+		setHostList([]string)
+	}
+
+	ctlClientCmd struct {
+		hostlist  []string
+		ctlClient control.Invoker
+	}
 )
+
+func (cmd *ctlClientCmd) setClient(c control.Invoker) {
+	cmd.ctlClient = c
+}
+
+func (cmd *ctlClientCmd) setHostList(hl []string) {
+	cmd.hostlist = hl
+}
 
 // implement the interface
 func (cmd *connectedCmd) setConns(conns client.Connect) {
@@ -121,7 +141,7 @@ func exitWithError(log logging.Logger, err error) {
 	os.Exit(1)
 }
 
-func parseOpts(args []string, opts *cliOptions, conns client.Connect, log *logging.LeveledLogger) error {
+func parseOpts(args []string, opts *cliOptions, ctlClient control.Invoker, conns client.Connect, log *logging.LeveledLogger) error {
 	p := flags.NewParser(opts, flags.Default)
 	p.Options ^= flags.PrintErrors // Don't allow the library to print errors
 	p.CommandHandler = func(cmd flags.Commander, args []string) error {
@@ -157,6 +177,14 @@ func parseOpts(args []string, opts *cliOptions, conns client.Connect, log *loggi
 			return errors.WithMessage(err, "processing config file")
 		}
 
+		ctlClientCfg, err := control.LoadClientConfig(opts.ConfigPath)
+		if err != nil {
+			if opts.ConfigPath != "" {
+				return errors.WithMessage(err, "failed to load client configuration")
+			}
+			ctlClientCfg = control.DefaultClientConfig()
+		}
+
 		if opts.HostList != "" {
 			hostlist, err := flattenHostAddrs(opts.HostList, config.ControlPort)
 			if err != nil {
@@ -171,6 +199,11 @@ func parseOpts(args []string, opts *cliOptions, conns client.Connect, log *loggi
 
 		if opts.Insecure {
 			config.TransportConfig.AllowInsecure = true
+		}
+
+		ctlClientCfg.TransportConfig.AllowInsecure = opts.Insecure
+		if err := ctlClientCfg.TransportConfig.PreLoadCertData(); err != nil {
+			return errors.Wrap(err, "Unable to load Certificate Data")
 		}
 
 		err = config.TransportConfig.PreLoadCertData()
@@ -193,6 +226,12 @@ func parseOpts(args []string, opts *cliOptions, conns client.Connect, log *loggi
 			wantsConn.setConns(conns)
 		}
 
+		ctlClient.SetClientConfig(ctlClientCfg)
+		if clientCmd, ok := cmd.(ctlClientUser); ok {
+			clientCmd.setClient(ctlClient)
+			clientCmd.setHostList(strings.Split(opts.HostList, ","))
+		}
+
 		if cfgCmd, ok := cmd.(cmdConfigSetter); ok {
 			cfgCmd.setConfig(config)
 		}
@@ -213,8 +252,11 @@ func main() {
 	log := logging.NewCommandLineLogger()
 
 	conns := client.NewConnect(log)
+	ctlClient := control.NewClient(
+		control.WithClientLogger(log),
+	)
 
-	if err := parseOpts(os.Args[1:], &opts, conns, log); err != nil {
+	if err := parseOpts(os.Args[1:], &opts, ctlClient, conns, log); err != nil {
 		exitWithError(log, err)
 	}
 }

@@ -37,6 +37,16 @@ type ClientConfig struct {
 	ControlPort     int                       `yaml:"port"`
 	HostList        []string                  `yaml:"hostlist"`
 	TransportConfig *security.TransportConfig `yaml:"transport_config"`
+
+	// NB: The rest of these fields are here only for compatibility
+	// with the old-style unified agent/client config. They are not
+	// used in the control API.
+	// TODO: Split agent config into its own structure.
+	AccessPoints  []string `yaml:"access_points"`
+	RuntimeDir    string   `yaml:"runtime_dir"`
+	HostFile      string   `yaml:"host_file"`
+	LogFile       string   `yaml:"log_file"`
+	LogFileFormat string   `yaml:"log_file_format"`
 }
 
 func DefaultClientConfig() *ClientConfig {

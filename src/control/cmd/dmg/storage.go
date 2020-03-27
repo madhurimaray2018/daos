@@ -1,5 +1,5 @@
 //
-// (C) Copyright 2019 Intel Corporation.
+// (C) Copyright 2019-2020 Intel Corporation.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,13 +25,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"strings"
 
 	"github.com/daos-stack/daos/src/control/client"
 	"github.com/daos-stack/daos/src/control/common"
 	ctlpb "github.com/daos-stack/daos/src/control/common/proto/ctl"
 	mgmtpb "github.com/daos-stack/daos/src/control/common/proto/mgmt"
 	types "github.com/daos-stack/daos/src/control/common/storage"
+	"github.com/daos-stack/daos/src/control/lib/control"
 	"github.com/daos-stack/daos/src/control/lib/hostlist"
 )
 
@@ -92,7 +95,7 @@ func (cmd *storagePrepareCmd) Execute(args []string) error {
 // storageScanCmd is the struct representing the scan storage subcommand.
 type storageScanCmd struct {
 	logCmd
-	connectedCmd
+	ctlClientCmd
 	Verbose bool `short:"v" long:"verbose" description:"List SCM & NVMe device details"`
 }
 
@@ -100,86 +103,21 @@ type storageScanCmd struct {
 //
 // Runs NVMe and SCM storage scan on all connected servers.
 func (cmd *storageScanCmd) Execute(args []string) error {
-	out, err := scanCmdDisplay(cmd.conns.StorageScan(nil), !cmd.Verbose)
+	ctx := context.Background()
+	req := &control.StorageScanReq{}
+	req.SetHostList(cmd.hostlist)
+	resp, err := control.StorageScan(ctx, cmd.ctlClient, req)
 	if err != nil {
 		return err
 	}
-	cmd.log.Info(out)
+
+	var bld strings.Builder
+	if err := control.FormatStorageScanResponse(resp, &bld, control.FmtWithVerboseOutput(cmd.Verbose)); err != nil {
+		return err
+	}
+	cmd.log.Info(bld.String())
 
 	return nil
-}
-
-// scanCmdDisplay returns tabulated output of grouped host summaries or groups
-// matched on all tabulatd device details per host.
-func scanCmdDisplay(result *client.StorageScanResp, summary bool) (string, error) {
-	out := &bytes.Buffer{}
-
-	groups, err := groupScanResults(result, summary)
-	if err != nil {
-		return "", err
-	}
-
-	if summary {
-		if len(groups) == 0 {
-			return "no hosts found", nil
-		}
-		return tabulateHostGroups(groups, "Hosts", "SCM Total", "NVMe Total")
-	}
-
-	formatHostGroups(out, groups)
-
-	return out.String(), nil
-}
-
-// groupScanResults collects identical output keyed on hostset from
-// scan results. SCM namespaces will be displayed instead of modules if they
-// exist. SCM & NVMe device details will be tabulated and grouping will match
-// all tabulated output for a given host. Summary will provide storage capacity
-// totals and number of device.
-func groupScanResults(result *client.StorageScanResp, summary bool) (groups hostlist.HostGroups, err error) {
-	var host string
-	buf := &bytes.Buffer{}
-	groups = make(hostlist.HostGroups)
-
-	for _, srv := range result.Servers {
-		buf.Reset()
-
-		host, _, err = common.SplitPort(srv, 0) // disregard port when grouping output
-		if err != nil {
-			return
-		}
-
-		if summary {
-			fmt.Fprintf(buf, "%s%s%s", result.Scm[srv].Summary(),
-				rowFieldSep, result.Nvme[srv].Summary())
-			if err = groups.AddHost(buf.String(), host); err != nil {
-				return
-			}
-			continue
-		}
-
-		sres := result.Scm[srv]
-		switch {
-		case sres.Err != nil:
-			fmt.Fprintf(buf, "SCM Error: %s\n", sres.Err)
-		case len(sres.Namespaces) > 0:
-			fmt.Fprintf(buf, "%s\n", scmNsScanTable(sres.Namespaces))
-		default:
-			fmt.Fprintf(buf, "%s\n", scmModuleScanTable(sres.Modules))
-		}
-
-		if result.Nvme[srv].Err != nil {
-			fmt.Fprintf(buf, "NVMe Error: %s\n", result.Nvme[srv].Err)
-		} else {
-			fmt.Fprintf(buf, "%s", nvmeScanTable(result.Nvme[srv].Ctrlrs))
-		}
-
-		if err = groups.AddHost(buf.String(), host); err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 // storageFormatCmd is the struct representing the format storage subcommand.

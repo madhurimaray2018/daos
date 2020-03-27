@@ -35,6 +35,7 @@ import (
 	"github.com/daos-stack/daos/src/control/common"
 	ctlpb "github.com/daos-stack/daos/src/control/common/proto/ctl"
 	mgmtpb "github.com/daos-stack/daos/src/control/common/proto/mgmt"
+	"github.com/daos-stack/daos/src/control/lib/control"
 	"github.com/daos-stack/daos/src/control/logging"
 	"github.com/daos-stack/daos/src/control/security"
 )
@@ -251,12 +252,12 @@ func createTestConfig(t *testing.T, log logging.Logger, path string) (*os.File, 
 	return f, cleanup
 }
 
-func runCmd(t *testing.T, cmd string, log *logging.LeveledLogger, conn client.Connect) error {
+func runCmd(t *testing.T, cmd string, log *logging.LeveledLogger, ctlClient control.Invoker, conn client.Connect) error {
 	t.Helper()
 
 	var opts cliOptions
 	args := append([]string{"--insecure"}, strings.Split(cmd, " ")...)
-	return parseOpts(args, &opts, conn, log)
+	return parseOpts(args, &opts, ctlClient, conn, log)
 }
 
 func runCmdTests(t *testing.T, cmdTests []cmdTest) {
@@ -272,8 +273,9 @@ func runCmdTests(t *testing.T, cmdTests []cmdTest) {
 			f.Close()
 			defer cleanup()
 
+			ctlClient := control.DefaultMockInvoker()
 			conn := newTestConn(t)
-			err := runCmd(t, st.cmd, log, conn)
+			err := runCmd(t, st.cmd, log, ctlClient, conn)
 			if err != st.expectedErr {
 				if st.expectedErr == nil {
 					t.Fatalf("expected nil error, got %+v", err)
@@ -301,7 +303,7 @@ func TestBadCommand(t *testing.T) {
 
 	var opts cliOptions
 	conn := newTestConn(t)
-	err := parseOpts([]string{"foo"}, &opts, conn, log)
+	err := parseOpts([]string{"foo"}, &opts, nil, conn, log)
 	testExpectedError(t, fmt.Errorf("Unknown command `foo'"), err)
 }
 
@@ -311,6 +313,6 @@ func TestNoCommand(t *testing.T) {
 
 	var opts cliOptions
 	conn := newTestConn(t)
-	err := parseOpts([]string{}, &opts, conn, log)
+	err := parseOpts([]string{}, &opts, nil, conn, log)
 	testExpectedError(t, fmt.Errorf("Please specify one command"), err)
 }

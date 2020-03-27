@@ -46,6 +46,10 @@ var defaultLogger = logging.NewCombinedLogger("", ioutil.Discard)
 type (
 	unaryRPC func(context.Context, grpc.ClientConnInterface) (proto.Message, error)
 
+	targetSetter interface {
+		SetHostList(hl []string)
+	}
+
 	targetChooser interface {
 		getHostList() []string
 		isMSRequest() bool
@@ -79,6 +83,7 @@ type (
 	Invoker interface {
 		UnaryInvoker
 		//StreamInvoker
+		SetClientConfig(*ClientConfig)
 	}
 
 	debugLogger interface {
@@ -96,6 +101,10 @@ type (
 
 func (r *request) getHostList() []string {
 	return r.HostList
+}
+
+func (r *request) SetHostList(hl []string) {
+	r.HostList = hl
 }
 
 func (r *request) isMSRequest() bool {
@@ -144,6 +153,10 @@ func NewClient(opts ...ClientOption) *Client {
 
 func DefaultClient() *Client {
 	return NewClient(WithClientLogger(defaultLogger))
+}
+
+func (c *Client) SetClientConfig(cfg *ClientConfig) {
+	c.config = cfg
 }
 
 func (c *Client) Debug(msg string) {
@@ -205,6 +218,7 @@ type (
 	// unary request types (1 response to 1 request).
 	UnaryRequest interface {
 		targetChooser
+		targetSetter
 		unaryRPCGetter
 	}
 
@@ -279,6 +293,10 @@ func (hem HostErrorsMap) Keys() []string {
 // getMSResponse is a helper method to return the MS response
 // message from a UnaryResponse.
 func (ur *UnaryResponse) getMSResponse() (proto.Message, error) {
+	if ur == nil {
+		return nil, errors.Errorf("nil %T", ur)
+	}
+
 	if !ur.fromMS {
 		return nil, errors.New("response did not come from management service")
 	}

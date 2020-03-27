@@ -59,10 +59,10 @@ type (
 	FormatConfigOption func(*FormatConfig)
 )
 
-// FmtWithVerboseOutput enables verbose output from the formatter.
-func FmtWithVerboseOutput() FormatConfigOption {
+// FmtWithVerboseOutput toggles verbose output from the formatter.
+func FmtWithVerboseOutput(verbose bool) FormatConfigOption {
 	return func(cfg *FormatConfig) {
-		cfg.Verbose = true
+		cfg.Verbose = verbose
 	}
 }
 

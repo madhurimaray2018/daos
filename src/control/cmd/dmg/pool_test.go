@@ -38,6 +38,7 @@ import (
 
 	"github.com/daos-stack/daos/src/control/client"
 	. "github.com/daos-stack/daos/src/control/common"
+	"github.com/daos-stack/daos/src/control/lib/control"
 	"github.com/daos-stack/daos/src/control/logging"
 )
 
@@ -454,7 +455,10 @@ func TestPoolGetACLToFile_Success(t *testing.T) {
 	aclFile := filepath.Join(tmpDir, "out.txt")
 
 	conn := newTestConn(t)
-	err := runCmd(t, fmt.Sprintf("pool get-acl --pool 12345678-1234-1234-123456789abc --outfile %s", aclFile), log, conn)
+	err := runCmd(t,
+		fmt.Sprintf("pool get-acl --pool 12345678-1234-1234-123456789abc --outfile %s", aclFile),
+		log, control.DefaultMockInvoker(), conn,
+	)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got: %+v", err)

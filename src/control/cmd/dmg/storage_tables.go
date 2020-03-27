@@ -28,80 +28,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/dustin/go-humanize"
-
 	"github.com/daos-stack/daos/src/control/common/proto"
 	"github.com/daos-stack/daos/src/control/lib/txtfmt"
-	"github.com/daos-stack/daos/src/control/server/storage"
 )
-
-func scmModuleScanTable(ms storage.ScmModules) string {
-	buf := &bytes.Buffer{}
-
-	if len(ms) == 0 {
-		fmt.Fprint(buf, "\tNo SCM modules found\n")
-		return buf.String()
-	}
-
-	physicalIdTitle := "SCM Module ID"
-	socketTitle := "Socket ID"
-	memCtrlrTitle := "Memory Ctrlr ID"
-	channelTitle := "Channel ID"
-	slotTitle := "Channel Slot"
-	capacityTitle := "Capacity"
-
-	formatter := txtfmt.NewTableFormatter(
-		physicalIdTitle, socketTitle, memCtrlrTitle, channelTitle, slotTitle, capacityTitle,
-	)
-	var table []txtfmt.TableRow
-
-	sort.Slice(ms, func(i, j int) bool { return ms[i].PhysicalID < ms[j].PhysicalID })
-
-	for _, m := range ms {
-		row := txtfmt.TableRow{physicalIdTitle: fmt.Sprint(m.PhysicalID)}
-		row[socketTitle] = fmt.Sprint(m.SocketID)
-		row[memCtrlrTitle] = fmt.Sprint(m.ControllerID)
-		row[channelTitle] = fmt.Sprint(m.ChannelID)
-		row[slotTitle] = fmt.Sprint(m.ChannelPosition)
-		row[capacityTitle] = humanize.IBytes(m.Capacity)
-
-		table = append(table, row)
-	}
-
-	fmt.Fprint(buf, formatter.Format(table))
-
-	return buf.String()
-}
-
-func scmNsScanTable(nss storage.ScmNamespaces) string {
-	buf := &bytes.Buffer{}
-
-	if len(nss) == 0 {
-		fmt.Fprint(buf, "\tNo SCM namespaces found\n")
-		return buf.String()
-	}
-
-	deviceTitle := "SCM Namespace"
-	socketTitle := "Socket ID"
-	capacityTitle := "Capacity"
-
-	formatter := txtfmt.NewTableFormatter(deviceTitle, socketTitle, capacityTitle)
-	var table []txtfmt.TableRow
-
-	sort.Slice(nss, func(i, j int) bool { return nss[i].BlockDevice < nss[j].BlockDevice })
-
-	for _, ns := range nss {
-		row := txtfmt.TableRow{deviceTitle: ns.BlockDevice}
-		row[socketTitle] = fmt.Sprint(ns.NumaNode)
-		row[capacityTitle] = humanize.Bytes(ns.Size)
-
-		table = append(table, row)
-	}
-
-	fmt.Fprint(buf, formatter.Format(table))
-
-	return buf.String()
-}
 
 func scmFormatTable(smr proto.ScmMountResults) string {
 	buf := &bytes.Buffer{}
@@ -131,42 +60,6 @@ func scmFormatTable(smr proto.ScmMountResults) string {
 		}
 
 		row[resultTitle] = result
-
-		table = append(table, row)
-	}
-
-	fmt.Fprint(buf, formatter.Format(table))
-
-	return buf.String()
-}
-
-func nvmeScanTable(ncs proto.NvmeControllers) string {
-	buf := &bytes.Buffer{}
-
-	if len(ncs) == 0 {
-		fmt.Fprint(buf, "\tNo NVMe devices found\n")
-		return buf.String()
-	}
-
-	pciTitle := "NVMe PCI"
-	modelTitle := "Model"
-	fwTitle := "FW Revision"
-	socketTitle := "Socket ID"
-	capacityTitle := "Capacity"
-
-	formatter := txtfmt.NewTableFormatter(
-		pciTitle, modelTitle, fwTitle, socketTitle, capacityTitle,
-	)
-	var table []txtfmt.TableRow
-
-	sort.Slice(ncs, func(i, j int) bool { return ncs[i].Pciaddr < ncs[j].Pciaddr })
-
-	for _, ctrlr := range ncs {
-		row := txtfmt.TableRow{pciTitle: ctrlr.Pciaddr}
-		row[modelTitle] = ctrlr.Model
-		row[fwTitle] = ctrlr.Fwrev
-		row[socketTitle] = fmt.Sprint(ctrlr.Socketid)
-		row[capacityTitle] = humanize.Bytes((*proto.NvmeController)(ctrlr).Capacity())
 
 		table = append(table, row)
 	}

@@ -41,6 +41,8 @@ const (
 	defaultSvcReps = 1
 )
 
+// checkUUID is a helper function for validating that the supplied
+// UUID string parses as a valid UUID.
 func checkUUID(uuidStr string) error {
 	_, err := uuid.Parse(uuidStr)
 	return errors.Wrapf(err, "invalid UUID %q", uuidStr)
@@ -165,7 +167,7 @@ func PoolCreate(ctx context.Context, rpcClient UnaryInvoker, req *PoolCreateReq)
 	rpcClient.Debugf("Create DAOS pool response: %+v\n", msResp)
 
 	return &PoolCreateResp{
-		UUID:    req.UUID,
+		UUID:    pbReq.Uuid,
 		SvcReps: msResp.(*mgmtpb.PoolCreateResp).GetSvcreps(),
 	}, nil
 }

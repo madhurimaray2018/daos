@@ -629,7 +629,7 @@ pciAddr-1 model-1 fwRev-1     1         1 B
 			}
 
 			var bld strings.Builder
-			if err := FormatStorageScanResponse(resp, &bld, FmtWithVerboseOutput()); err != nil {
+			if err := FormatStorageScanResponse(resp, &bld, FmtWithVerboseOutput(true)); err != nil {
 				t.Fatal(err)
 			}
 
