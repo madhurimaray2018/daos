@@ -99,6 +99,10 @@ const (
 	ClientUnknown Code = iota + 500
 	ClientConfigBadControlPort
 	ClientConfigBadAccessPoints
+	ClientConfigEmptyHostList
+	ClientConnectionNoRoute
+	ClientConnectionRefused
+	ClientConnectionClosed
 
 	// server fault codes
 	ServerUnknown Code = iota + 600

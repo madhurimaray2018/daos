@@ -6,11 +6,12 @@ package mgmt
 import (
 	context "context"
 	fmt "fmt"
+	math "math"
+
 	proto "github.com/golang/protobuf/proto"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	math "math"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -297,10 +298,10 @@ type MgmtSvcClient interface {
 }
 
 type mgmtSvcClient struct {
-	cc *grpc.ClientConn
+	cc grpc.ClientConnInterface
 }
 
-func NewMgmtSvcClient(cc *grpc.ClientConn) MgmtSvcClient {
+func NewMgmtSvcClient(cc grpc.ClientConnInterface) MgmtSvcClient {
 	return &mgmtSvcClient{cc}
 }
 

@@ -1,5 +1,5 @@
 //
-// (C) Copyright 2019 Intel Corporation.
+// (C) Copyright 2019-2020 Intel Corporation.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -193,4 +193,24 @@ func (sns ScmNamespaces) Capacity() (tb uint64) {
 func (sns ScmNamespaces) Summary() string {
 	return fmt.Sprintf("%s (%d %s)", humanize.Bytes(sns.Capacity()), len(sns),
 		common.Pluralise("namespace", len(sns)))
+}
+
+func (nc *NvmeController) Capacity() (tb uint64) {
+	for _, n := range nc.Namespaces {
+		tb += n.Size
+	}
+	return
+}
+
+func (ncs NvmeControllers) Capacity() (tb uint64) {
+	for _, c := range ncs {
+		tb += (*NvmeController)(c).Capacity()
+	}
+	return
+}
+
+// Summary reports accumulated storage space and the number of controllers.
+func (ncs NvmeControllers) Summary() string {
+	return fmt.Sprintf("%s (%d %s)", humanize.Bytes(ncs.Capacity()),
+		len(ncs), common.Pluralise("controller", len(ncs)))
 }
