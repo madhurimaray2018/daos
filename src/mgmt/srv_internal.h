@@ -111,6 +111,8 @@ int ds_mgmt_pool_list_cont(uuid_t uuid,
 			   struct daos_pool_cont_info **containers,
 			   uint64_t *ncontainers);
 int ds_mgmt_pool_query(uuid_t pool_uuid, daos_pool_info_t *pool_info);
+int ds_mgmt_cont_set_owner(uuid_t pool_uuid, uuid_t cont_uuid, const char *user,
+			   const char *group);
 
 /** srv_query.c */
 

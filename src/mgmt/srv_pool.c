@@ -1119,3 +1119,11 @@ out_svc:
 out:
 	return rc;
 }
+
+int
+ds_mgmt_cont_set_owner(uuid_t pool_uuid, uuid_t cont_uuid, const char *user,
+		       const char *group)
+{
+	/* TODO - implement */
+	return 0;
+}
