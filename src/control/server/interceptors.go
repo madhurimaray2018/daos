@@ -38,6 +38,13 @@ import (
 	"github.com/daos-stack/daos/src/control/security"
 )
 
+/*
+#cgo LDFLAGS: -lgurt
+
+#include <gurt/errno.h>
+*/
+import "C"
+
 func checkAccess(ctx context.Context, FullMethod string) error {
 	component, err := componentFromContext(ctx)
 
@@ -132,4 +139,30 @@ func unaryErrorInterceptor(ctx context.Context, req interface{}, info *grpc.Unar
 func streamErrorInterceptor(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 	err := handler(srv, ss)
 	return proto.AnnotateError(err)
+}
+
+type statusGetter interface {
+	GetStatus() int32
+}
+
+func dErrFromStatus(sg statusGetter) error {
+	dStatus := sg.GetStatus()
+	if dStatus == 0 {
+		return nil
+	}
+	dErrStr := C.GoString(C.d_errstr(C.int(dStatus)))
+	return errors.New(fmt.Sprintf("DAOS error (%d): %s", dStatus, dErrStr))
+}
+
+func unaryStatusInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	res, err := handler(ctx, req)
+	if err != nil {
+		return res, err
+	}
+
+	if sg, ok := res.(statusGetter); ok {
+		return res, dErrFromStatus(sg)
+	}
+
+	return res, err
 }
