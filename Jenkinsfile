@@ -1237,7 +1237,7 @@ pipeline {
                     }
                     agent {
                         // 2 node cluster with 1 IB/node + 1 test control node
-                        label 'ci_nvme3'
+                        label 'tci_nvme3'
                     }
                     steps {
                         unstash 'Leap-rpm-version'
@@ -1320,7 +1320,7 @@ pipeline {
                     }
                     agent {
                         // 4 node cluster with 2 IB/node + 1 test control node
-                        label 'ci_nvme5'
+                        label 'tci_nvme5'
                     }
                     steps {
                         unstash 'Leap-rpm-version'
@@ -1403,7 +1403,7 @@ pipeline {
                     }
                     agent {
                         // 8+ node cluster with 1 IB/node + 1 test control node
-                        label 'ci_nvme9'
+                        label 'tci_nvme9'
                     }
                     steps {
                         unstash 'CentOS-rpm-version'
@@ -1485,7 +1485,7 @@ pipeline {
                     }
                     agent {
                         // 8+ node cluster with 1 IB/node + 1 test control node
-                        label 'ci_nvme9'
+                        label 'tci_nvme9'
                     }
                     steps {
                         unstash 'Leap-rpm-version'
