@@ -2547,3 +2547,71 @@ out:
 	return rc;
 }
 
+int
+ds_cont_svc_cont_set_prop(uuid_t pool_uuid, uuid_t cont_uuid,
+			  d_rank_list_t *ranks, daos_prop_t *prop)
+{
+	int				rc;
+	struct rsvc_client		client;
+	crt_endpoint_t			ep;
+	struct dss_module_info		*info = dss_get_module_info();
+	crt_rpc_t			*rpc;
+	struct cont_prop_set_in		*in;
+	struct cont_prop_set_out	*out;
+
+	D_DEBUG(DB_MGMT, DF_UUID": Setting container prop\n",
+		DP_UUID(cont_uuid));
+
+	rc = rsvc_client_init(&client, ranks);
+	if (rc != 0)
+		D_GOTO(out, rc);
+
+rechoose:
+	ep.ep_grp = NULL; /* primary group */
+	rc = rsvc_client_choose(&client, &ep);
+	if (rc != 0) {
+		D_ERROR(DF_UUID": cannot find pool service: "DF_RC"\n",
+			DP_UUID(uuid), DP_RC(rc));
+		goto out_client;
+	}
+
+	rc = cont_req_create(info->dmi_ctx, &ep, CONT_PROP_SET, &rpc);
+	if (rc != 0) {
+		D_ERROR(DF_UUID": failed to create cont set prop rpc: %d\n",
+			DP_UUID(uuid), rc);
+		D_GOTO(out_client, rc);
+	}
+
+	in = crt_req_get(rpc);
+	uuid_clear(in->cpsi_op.ci_hdl);
+	uuid_clear(in->cpsi_op.ci_pool_hdl);
+	uuid_copy(in->cpsi_op.ci_uuid, uuid);
+	in->cpsi_prop = prop;
+
+	rc = dss_rpc_send(rpc);
+	out = crt_reply_get(rpc);
+	D_ASSERT(out != NULL);
+
+	rc = rsvc_client_complete_rpc(&client, &ep, rc,
+				      out->cpso_op.co_rc,
+				      &out->cpso_op.co_hint);
+	if (rc == RSVC_CLIENT_RECHOOSE) {
+		crt_req_decref(rpc);
+		dss_sleep(1000 /* ms */);
+		D_GOTO(rechoose, rc);
+	}
+
+	rc = out->cpso_op.co_rc;
+	if (rc != 0) {
+		D_ERROR(DF_UUID": failed to set prop for container: %d\n",
+			DP_UUID(cont_uuid), rc);
+	}
+
+out_rpc:
+	crt_req_decref(rpc);
+out_client:
+	rsvc_client_fini(&client);
+out:
+	return rc;
+}
+
